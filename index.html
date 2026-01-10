@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gravity Sculptor</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+    }
+
+    #canvas-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    canvas {
+      display: block;
+    }
+
+    /* Hidden video for hand tracking */
+    #webcam {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Cinematic vignette overlay */
+    #vignette {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      background: radial-gradient(
+        ellipse at center,
+        transparent 0%,
+        transparent 50%,
+        rgba(0, 0, 0, 0.4) 100%
+      );
+      z-index: 10;
+    }
+
+    /* Control Panel */
+    #controls {
+      position: fixed;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 20px;
+      background: rgba(10, 10, 30, 0.85);
+      border-radius: 16px;
+      border: 1px solid rgba(100, 150, 255, 0.2);
+      backdrop-filter: blur(10px);
+      font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-width: 200px;
+    }
+
+    #controls h3 {
+      color: rgba(150, 200, 255, 0.9);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin: 0 0 8px 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(100, 150, 255, 0.15);
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .control-group label {
+      color: rgba(200, 220, 255, 0.8);
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .control-group label span {
+      color: rgba(100, 180, 255, 1);
+      font-weight: 600;
+      font-size: 11px;
+    }
+
+    .control-group input[type="range"] {
+      width: 100%;
+      height: 4px;
+      -webkit-appearance: none;
+      background: rgba(50, 80, 150, 0.4);
+      border-radius: 2px;
+      outline: none;
+    }
+
+    .control-group input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      background: linear-gradient(135deg, #4af, #08f);
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(68, 170, 255, 0.5);
+    }
+
+    .mode-btn {
+      padding: 10px 14px;
+      background: rgba(50, 80, 150, 0.3);
+      border: 1px solid rgba(100, 150, 255, 0.3);
+      border-radius: 8px;
+      color: rgba(200, 220, 255, 0.9);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mode-btn:hover {
+      background: rgba(70, 100, 180, 0.4);
+      border-color: rgba(100, 180, 255, 0.5);
+    }
+
+    .mode-btn.active {
+      background: rgba(68, 170, 255, 0.3);
+      border-color: rgba(68, 170, 255, 0.6);
+      color: #fff;
+    }
+
+    .mode-btn .icon {
+      font-size: 16px;
+    }
+
+    .toggle-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .toggle-row .mode-btn {
+      flex: 1;
+      justify-content: center;
+    }
+
+    #controls .hint {
+      color: rgba(150, 180, 220, 0.5);
+      font-size: 10px;
+      text-align: center;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(100, 150, 255, 0.1);
+    }
+
+    /* Score Display */
+    #score-display {
+      position: fixed;
+      left: 20px;
+      top: 20px;
+      z-index: 100;
+      padding: 16px 20px;
+      background: rgba(10, 10, 30, 0.85);
+      border-radius: 12px;
+      border: 1px solid rgba(100, 150, 255, 0.2);
+      backdrop-filter: blur(10px);
+      font-family: 'SF Pro Display', -apple-system, sans-serif;
+    }
+
+    #score-display .score {
+      font-size: 32px;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 0 20px rgba(100, 200, 255, 0.5);
+    }
+
+    #score-display .high-score {
+      font-size: 11px;
+      color: rgba(150, 200, 255, 0.6);
+      margin-top: 4px;
+    }
+
+    #score-display .combo {
+      font-size: 18px;
+      font-weight: 600;
+      color: #4af;
+      margin-top: 8px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    #score-display .combo.active {
+      opacity: 1;
+    }
+
+    /* Challenge Progress */
+    #challenge-display {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      text-align: center;
+      padding: 12px 24px;
+      background: rgba(10, 10, 30, 0.9);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 180, 100, 0.3);
+      backdrop-filter: blur(10px);
+      font-family: 'SF Pro Display', -apple-system, sans-serif;
+      display: none;
+    }
+
+    #challenge-display.active {
+      display: block;
+    }
+
+    #challenge-display .title {
+      font-size: 14px;
+      color: rgba(255, 200, 150, 0.9);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+    }
+
+    #challenge-display .progress-bar {
+      width: 200px;
+      height: 6px;
+      background: rgba(50, 50, 80, 0.6);
+      border-radius: 3px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+
+    #challenge-display .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #f80, #fa0);
+      border-radius: 3px;
+      transition: width 0.3s;
+    }
+
+    #challenge-display .timer {
+      font-size: 24px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    /* Mode Selection */
+    .mode-section {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(100, 150, 255, 0.15);
+    }
+
+    .mode-section h4 {
+      color: rgba(150, 200, 255, 0.7);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin: 0 0 8px 0;
+    }
+
+    .color-picker {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .color-dot {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .color-dot:hover {
+      transform: scale(1.2);
+    }
+
+    .color-dot.active {
+      border-color: #fff;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    }
+
+    .color-dot.cyan { background: #0cf; }
+    .color-dot.purple { background: #a6f; }
+    .color-dot.pink { background: #f6a; }
+    .color-dot.orange { background: #fa0; }
+    .color-dot.green { background: #4c8; }
+
+    /* Primary Reset Button */
+    .reset-primary {
+      background: linear-gradient(135deg, rgba(100, 180, 255, 0.3), rgba(150, 100, 255, 0.3)) !important;
+      border: 1px solid rgba(150, 200, 255, 0.5) !important;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .reset-primary:hover {
+      background: linear-gradient(135deg, rgba(100, 180, 255, 0.5), rgba(150, 100, 255, 0.5)) !important;
+      transform: scale(1.02);
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+  <video id="webcam" autoplay playsinline></video>
+  <div id="vignette"></div>
+  
+  <!-- Score Display -->
+  <div id="score-display">
+    <div class="score" id="score-value">0</div>
+    <div class="high-score">Best: <span id="high-score-value">0</span></div>
+    <div class="combo" id="combo-display">🔥 x1 Combo</div>
+  </div>
+  
+  <!-- Challenge Display -->
+  <div id="challenge-display">
+    <div class="title" id="challenge-title">COLLECT</div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="challenge-progress" style="width: 0%"></div>
+    </div>
+    <div class="timer" id="challenge-timer">30s</div>
+  </div>
+  
+  <!-- Control Panel -->
+  <div id="controls">
+    <h3>Gravity Sculptor</h3>
+    
+    <!-- Prominent Reset Button -->
+    <button class="mode-btn reset-primary" id="start-fresh-btn" onclick="window.gravitySculptor && window.gravitySculptor.startFresh()">
+      <span class="icon">🔄</span> Start Fresh
+    </button>
+    
+    <div class="control-group">
+      <label>Particles <span id="particles-val">800</span></label>
+      <input type="range" id="particles" min="100" max="2000" step="100" value="800">
+    </div>
+    
+    <div class="control-group">
+      <label>Gravity Power <span id="gravity-val">1.0x</span></label>
+      <input type="range" id="gravity" min="0.1" max="3" step="0.1" value="1">
+    </div>
+    
+    <div class="control-group">
+      <label>Particle Speed <span id="speed-val">1.0x</span></label>
+      <input type="range" id="speed" min="0.2" max="2" step="0.1" value="1">
+    </div>
+    
+    <div class="control-group">
+      <label>Drag <span id="drag-val">0.995</span></label>
+      <input type="range" id="drag" min="0.95" max="1" step="0.001" value="0.995">
+    </div>
+    
+    <div class="control-group">
+      <label>Bloom <span id="bloom-val">1.0x</span></label>
+      <input type="range" id="bloom" min="0" max="2" step="0.1" value="1">
+    </div>
+    
+    <div class="toggle-row">
+      <button class="mode-btn active" id="attract-btn" onclick="window.gravitySculptor && window.gravitySculptor.setAttractMode(true)">
+        <span class="icon">🌀</span> Attract
+      </button>
+      <button class="mode-btn" id="repel-btn" onclick="window.gravitySculptor && window.gravitySculptor.setAttractMode(false)">
+        <span class="icon">💥</span> Repel
+      </button>
+    </div>
+    
+    <!-- Art/Drawing Mode -->
+    <div class="mode-section">
+      <h4>Create Art</h4>
+      <button class="mode-btn" id="draw-btn">
+        <span class="icon">🎨</span> Draw Mode
+      </button>
+      <div class="color-picker">
+        <div class="color-dot cyan active" data-color="0"></div>
+        <div class="color-dot purple" data-color="1"></div>
+        <div class="color-dot pink" data-color="2"></div>
+        <div class="color-dot orange" data-color="3"></div>
+        <div class="color-dot green" data-color="4"></div>
+      </div>
+      <button class="mode-btn" id="clear-path-btn" style="margin-top: 8px;">
+        <span class="icon">🗑️</span> Clear Drawing
+      </button>
+    </div>
+    
+    <!-- Challenges -->
+    <div class="mode-section">
+      <h4>Challenges</h4>
+      <button class="mode-btn" id="collect-btn" onclick="window.gravitySculptor && window.gravitySculptor.startChallenge('collect')">
+        <span class="icon">🎯</span> Collect
+      </button>
+      <button class="mode-btn" id="disperse-btn" onclick="window.gravitySculptor && window.gravitySculptor.startChallenge('disperse')">
+        <span class="icon">💫</span> Disperse
+      </button>
+      <button class="mode-btn" id="balance-btn" onclick="window.gravitySculptor && window.gravitySculptor.startChallenge('balance')">
+        <span class="icon">⚖️</span> Balance
+      </button>
+    </div>
+    
+    <button class="mode-btn" id="chaos-btn" onclick="window.gravitySculptor && window.gravitySculptor.toggleChaos()">
+      <span class="icon">🌪️</span> Chaos Mode
+    </button>
+    
+    <button class="mode-btn" id="reset-btn" onclick="window.gravitySculptor && window.gravitySculptor.startFresh()">
+      <span class="icon">✨</span> Reset All
+    </button>
+    
+    <div class="hint">Wave your hands to sculpt gravity</div>
+  </div>
+  
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
