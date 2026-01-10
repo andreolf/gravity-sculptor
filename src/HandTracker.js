@@ -33,12 +33,11 @@ export class HandTracker {
       this.video.srcObject = stream;
       await this.video.play();
 
-      // Import MediaPipe dynamically
-      const { Hands } = await import('@mediapipe/hands');
-      const { Camera } = await import('@mediapipe/camera_utils');
+      // Load MediaPipe from CDN (more reliable for production builds)
+      await this.loadMediaPipeFromCDN();
 
       // Initialize MediaPipe Hands
-      this.handsApi = new Hands({
+      this.handsApi = new window.Hands({
         locateFile: (file) => {
           return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
         }
@@ -54,7 +53,7 @@ export class HandTracker {
       this.handsApi.onResults((results) => this.onResults(results));
 
       // Start camera processing - match lower resolution
-      this.camera = new Camera(this.video, {
+      this.camera = new window.Camera(this.video, {
         onFrame: async () => {
           await this.handsApi.send({ image: this.video });
         },
@@ -203,6 +202,36 @@ export class HandTracker {
     this._prevHands = this.hands.map(h => ({ ...h }));
 
     return velocities;
+  }
+
+  /**
+   * Load MediaPipe scripts from CDN
+   */
+  async loadMediaPipeFromCDN() {
+    const loadScript = (src) => {
+      return new Promise((resolve, reject) => {
+        // Check if already loaded
+        if (src.includes('hands') && window.Hands) {
+          resolve();
+          return;
+        }
+        if (src.includes('camera_utils') && window.Camera) {
+          resolve();
+          return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = src;
+        script.crossOrigin = 'anonymous';
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    };
+
+    // Load in order
+    await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js');
+    await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js');
   }
 
   dispose() {
