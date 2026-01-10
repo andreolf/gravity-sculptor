@@ -10,9 +10,9 @@ export class GameMode {
     this.isDrawing = false;
     
     // Drawing/Art system
-    this.drawPath = []; // Array of {x, y, time} points
-    this.pathMaxLength = 300; // More points for smoother trails
-    this.pathFadeTime = 8000; // Longer fade time - 8 seconds
+    this.drawPath = []; // Array of {x, y, time, finger} points
+    this.pathMaxLength = 600; // More points for multi-finger trails
+    this.pathFadeTime = 10000; // 10 second fade for art persistence
     this.brushSize = 0.5; // Larger brush for easier attraction
     
     // Score system
@@ -46,12 +46,29 @@ export class GameMode {
 
   /**
    * Add point to drawing path from hand position
+   * @param {number} x - X position
+   * @param {number} y - Y position  
+   * @param {string} finger - Optional finger identifier for unique colors
    */
-  addDrawPoint(x, y) {
+  addDrawPoint(x, y, finger = null) {
     const now = Date.now();
-    this.drawPath.push({ x, y, time: now, color: this.currentColorIndex });
     
-    // Limit path length
+    // Assign color based on finger (each finger gets its own color)
+    let colorIndex = this.currentColorIndex;
+    if (finger) {
+      const fingerColors = {
+        'thumb': 0,    // Cyan
+        'index': 1,    // Purple
+        'middle': 2,   // Pink
+        'ring': 3,     // Orange
+        'pinky': 4     // Green
+      };
+      colorIndex = fingerColors[finger] ?? this.currentColorIndex;
+    }
+    
+    this.drawPath.push({ x, y, time: now, color: colorIndex, finger });
+    
+    // Limit path length (more for multi-finger drawing)
     if (this.drawPath.length > this.pathMaxLength) {
       this.drawPath.shift();
     }

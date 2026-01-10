@@ -250,15 +250,54 @@ export class HandTracker {
   }
   
   /**
-   * Get finger tip positions for drawing mode
-   * Returns RAW (unsmoothed) positions for instant response
+   * Get ALL extended finger tip positions for drawing mode
+   * Returns array of { x, y, finger } for each extended finger across all hands
    */
   getFingerTips() {
-    // Use raw positions for drawing - no smoothing delay
-    return this.rawHands.map(hand => ({
-      x: hand.fingerX || hand.x,
-      y: hand.fingerY || hand.y
-    }));
+    const tips = [];
+    
+    for (const hand of this.rawHands) {
+      if (!hand.landmarks) continue;
+      
+      const landmarks = hand.landmarks;
+      const wrist = landmarks[0];
+      
+      // Finger tip and pip landmarks
+      const fingers = [
+        { name: 'index', tip: 8, pip: 6 },
+        { name: 'middle', tip: 12, pip: 10 },
+        { name: 'ring', tip: 16, pip: 14 },
+        { name: 'pinky', tip: 20, pip: 18 }
+      ];
+      
+      // Check each finger
+      for (const finger of fingers) {
+        const tip = landmarks[finger.tip];
+        const pip = landmarks[finger.pip];
+        
+        // Finger is extended if tip is above (lower y) than pip
+        if (tip.y < pip.y - 0.02) {
+          tips.push({
+            x: -(tip.x * 2 - 1), // Mirror X
+            y: -(tip.y * 2 - 1),
+            finger: finger.name
+          });
+        }
+      }
+      
+      // Also check thumb (uses x distance instead of y)
+      const thumbTip = landmarks[4];
+      const thumbPip = landmarks[3];
+      if (Math.abs(thumbTip.x - wrist.x) > Math.abs(thumbPip.x - wrist.x) * 1.2) {
+        tips.push({
+          x: -(thumbTip.x * 2 - 1),
+          y: -(thumbTip.y * 2 - 1),
+          finger: 'thumb'
+        });
+      }
+    }
+    
+    return tips;
   }
 
   /**

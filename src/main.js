@@ -451,10 +451,10 @@ class GravitySculptor {
       this.renderer.updateFingerCursor(fingerTips, isDrawMode);
     }
     
-    // Drawing mode: use finger tips for precise drawing
+    // Drawing mode: use ALL extended finger tips for multi-finger drawing
     if (isDrawMode) {
       for (const tip of fingerTips) {
-        this.gameMode.addDrawPoint(tip.x * 1.8, tip.y * 1.4);
+        this.gameMode.addDrawPoint(tip.x * 1.8, tip.y * 1.4, tip.finger);
       }
     }
     

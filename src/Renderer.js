@@ -215,7 +215,7 @@ export class Renderer {
         // Create trail geometry if not exists
         if (!this.trailGeometry) {
             this.trailGeometry = new THREE.BufferGeometry();
-            const maxPoints = 200;
+            const maxPoints = 600; // More points for multi-finger trails
             const positions = new Float32Array(maxPoints * 3);
             const colors = new Float32Array(maxPoints * 3);
             const sizes = new Float32Array(maxPoints);
@@ -243,7 +243,7 @@ export class Renderer {
         const now = Date.now();
 
         // Update trail positions
-        for (let i = 0; i < 200; i++) {
+        for (let i = 0; i < 600; i++) {
             if (i < pathPoints.length) {
                 const point = pathPoints[i];
                 const age = (now - point.time) / 5000;
@@ -270,38 +270,51 @@ export class Renderer {
 
         this.trailGeometry.attributes.position.needsUpdate = true;
         this.trailGeometry.attributes.color.needsUpdate = true;
-        this.trailGeometry.setDrawRange(0, Math.min(pathPoints.length, 200));
+        this.trailGeometry.setDrawRange(0, Math.min(pathPoints.length, 600));
     }
 
     /**
-     * Update finger cursor position for visual feedback during drawing
+     * Update finger cursors for visual feedback during drawing
+     * Now supports multiple fingers!
      */
     updateFingerCursor(fingerTips, isDrawMode) {
-        if (!this.fingerCursor) {
-            // Create finger cursor indicator
-            const cursorGeom = new THREE.RingGeometry(0.08, 0.12, 32);
-            const cursorMat = new THREE.MeshBasicMaterial({
-                color: 0x00ffff,
-                transparent: true,
-                opacity: 0.8,
-                side: THREE.DoubleSide
-            });
-            this.fingerCursor = new THREE.Mesh(cursorGeom, cursorMat);
-            this.fingerCursor.position.z = 0;
-            this.scene.add(this.fingerCursor);
+        // Create cursor pool if needed (max 10 cursors)
+        if (!this.fingerCursors) {
+            this.fingerCursors = [];
+            const colors = [0x00ffff, 0xff00ff, 0xffff00, 0x00ff00, 0xff6600];
+            
+            for (let i = 0; i < 10; i++) {
+                const cursorGeom = new THREE.RingGeometry(0.06, 0.10, 32);
+                const cursorMat = new THREE.MeshBasicMaterial({
+                    color: colors[i % colors.length],
+                    transparent: true,
+                    opacity: 0.9,
+                    side: THREE.DoubleSide
+                });
+                const cursor = new THREE.Mesh(cursorGeom, cursorMat);
+                cursor.position.z = 0.1;
+                cursor.visible = false;
+                this.scene.add(cursor);
+                this.fingerCursors.push(cursor);
+            }
         }
 
-        if (isDrawMode && fingerTips.length > 0) {
-            const tip = fingerTips[0];
-            // Scale to scene coordinates
-            this.fingerCursor.position.x = tip.x * 1.8;
-            this.fingerCursor.position.y = tip.y * 1.4;
-            this.fingerCursor.visible = true;
-            // Pulse effect
-            const pulse = 1 + Math.sin(Date.now() * 0.01) * 0.2;
-            this.fingerCursor.scale.set(pulse, pulse, 1);
-        } else {
-            this.fingerCursor.visible = false;
+        // Update cursors based on finger tips
+        for (let i = 0; i < this.fingerCursors.length; i++) {
+            const cursor = this.fingerCursors[i];
+            
+            if (isDrawMode && i < fingerTips.length) {
+                const tip = fingerTips[i];
+                cursor.position.x = tip.x * 1.8;
+                cursor.position.y = tip.y * 1.4;
+                cursor.visible = true;
+                
+                // Pulse effect
+                const pulse = 1 + Math.sin(Date.now() * 0.01 + i) * 0.2;
+                cursor.scale.set(pulse, pulse, 1);
+            } else {
+                cursor.visible = false;
+            }
         }
     }
 
