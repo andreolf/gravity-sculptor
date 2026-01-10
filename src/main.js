@@ -426,10 +426,21 @@ class GravitySculptor {
     const gravityWells = this.handTracker.getGravityWells();
     const handVelocities = this.handTracker.getHandVelocities();
     
-    // Debug: log gravity wells every 60 frames when detected
-    if (gravityWells.length > 0 && this.frameCount % 60 === 0) {
-      console.log('🌍 Active gravity wells:', gravityWells.length, gravityWells);
+    // Get gesture events and apply explosion/implosion effects
+    const gestureEvents = this.handTracker.getGestureEvents();
+    for (const event of gestureEvents) {
+      if (event.type === 'EXPLOSION') {
+        this.physics.applyExplosion(event.x, event.y, 1.5);
+        this.gameMode.addScore(50); // Bonus for gesture
+      } else if (event.type === 'IMPLODE') {
+        this.physics.applyImplosion(event.x, event.y, 1.5);
+        this.gameMode.addScore(30);
+      }
     }
+    
+    // Update HUD with gesture info
+    const gestures = this.handTracker.getGestures();
+    this.updateHUD(gravityWells, gestures);
     
     // Get finger tips for drawing
     const fingerTips = this.handTracker.getFingerTips();
@@ -490,10 +501,74 @@ class GravitySculptor {
     // Render
     this.renderer.render();
     
-    // FPS tracking (for debug)
+    // FPS tracking
     this.frameCount++;
-    if (this.frameCount % 60 === 0) {
-      this.fps = 1000 / (now - (this.lastTime - dt * 16.67));
+    if (this.frameCount % 30 === 0) {
+      this.fps = Math.round(1000 / (performance.now() - this._lastFpsTime) * 30);
+      this._lastFpsTime = performance.now();
+      
+      // Update FPS display
+      const fpsEl = document.getElementById('fps-display');
+      if (fpsEl) fpsEl.textContent = this.fps || 60;
+    }
+    if (!this._lastFpsTime) this._lastFpsTime = performance.now();
+  }
+  
+  /**
+   * Update the cyberpunk HUD overlay
+   */
+  updateHUD(gravityWells, gestures) {
+    // Only update every few frames for performance
+    if (this.frameCount % 5 !== 0) return;
+    
+    // Hand status
+    const handStatusEl = document.getElementById('hand-status');
+    if (handStatusEl) {
+      if (gravityWells.length === 0) {
+        handStatusEl.textContent = 'SCANNING...';
+        handStatusEl.style.color = '#888';
+      } else if (gravityWells.length === 1) {
+        handStatusEl.textContent = '1 HAND DETECTED';
+        handStatusEl.style.color = '#0f0';
+      } else {
+        handStatusEl.textContent = '2 HANDS DETECTED';
+        handStatusEl.style.color = '#0ff';
+      }
+    }
+    
+    // Gesture display
+    const gestureEl = document.getElementById('gesture-display');
+    if (gestureEl && gestures.length > 0) {
+      const gesture = gestures[0];
+      gestureEl.textContent = gesture;
+      
+      // Color based on gesture
+      switch (gesture) {
+        case 'OPEN_PALM':
+          gestureEl.style.color = '#f00';
+          gestureEl.style.textShadow = '0 0 20px rgba(255, 0, 0, 0.8)';
+          break;
+        case 'FIST':
+          gestureEl.style.color = '#ff0';
+          gestureEl.style.textShadow = '0 0 20px rgba(255, 255, 0, 0.8)';
+          break;
+        case 'POINTING':
+          gestureEl.style.color = '#0f0';
+          gestureEl.style.textShadow = '0 0 20px rgba(0, 255, 0, 0.8)';
+          break;
+        default:
+          gestureEl.style.color = '#888';
+          gestureEl.style.textShadow = 'none';
+      }
+    } else if (gestureEl) {
+      gestureEl.textContent = 'NONE';
+      gestureEl.style.color = '#888';
+    }
+    
+    // Particle count
+    const particleEl = document.getElementById('particle-count');
+    if (particleEl) {
+      particleEl.textContent = this.config.particleCount.toLocaleString();
     }
   }
 

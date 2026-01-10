@@ -232,6 +232,64 @@ export class Physics {
     this.chaosFactor = this.chaosMode ? 3 : 1;
     return this.chaosMode;
   }
+  
+  /**
+   * Apply explosion force from a point (palm opening gesture)
+   */
+  applyExplosion(x, y, strength = 1.0) {
+    const worldX = x * 1.5;
+    const worldY = y * 1.2;
+    const explosionForce = 0.08 * strength;
+    const explosionRadius = 1.5;
+    
+    console.log(`💥 Applying explosion at (${worldX.toFixed(2)}, ${worldY.toFixed(2)})`);
+    
+    for (let i = 0; i < this.count; i++) {
+      const i3 = i * 3;
+      
+      const dx = this.positions[i3] - worldX;
+      const dy = this.positions[i3 + 1] - worldY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      if (dist < explosionRadius && dist > 0.01) {
+        // Force decreases with distance
+        const force = explosionForce * (1 - dist / explosionRadius);
+        const invDist = 1 / dist;
+        
+        this.velocities[i3] += dx * invDist * force;
+        this.velocities[i3 + 1] += dy * invDist * force;
+      }
+    }
+  }
+  
+  /**
+   * Apply implosion force to a point (fist closing gesture)
+   */
+  applyImplosion(x, y, strength = 1.0) {
+    const worldX = x * 1.5;
+    const worldY = y * 1.2;
+    const implosionForce = 0.06 * strength;
+    const implosionRadius = 2.0;
+    
+    console.log(`🌀 Applying implosion at (${worldX.toFixed(2)}, ${worldY.toFixed(2)})`);
+    
+    for (let i = 0; i < this.count; i++) {
+      const i3 = i * 3;
+      
+      const dx = worldX - this.positions[i3];
+      const dy = worldY - this.positions[i3 + 1];
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      if (dist < implosionRadius && dist > 0.01) {
+        // Force increases toward center
+        const force = implosionForce * (1 - dist / implosionRadius);
+        const invDist = 1 / dist;
+        
+        this.velocities[i3] += dx * invDist * force;
+        this.velocities[i3 + 1] += dy * invDist * force;
+      }
+    }
+  }
 
   /**
    * Get particle speeds for color/size modulation

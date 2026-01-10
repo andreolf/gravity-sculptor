@@ -61,7 +61,7 @@
       z-index: 50;
     }
 
-    /* Control Panel */
+    /* Control Panel - Cyberpunk Style */
     #controls {
       position: fixed;
       right: 20px;
@@ -72,22 +72,25 @@
       flex-direction: column;
       gap: 12px;
       padding: 20px;
-      background: rgba(10, 10, 30, 0.85);
-      border-radius: 16px;
-      border: 1px solid rgba(100, 150, 255, 0.2);
+      background: rgba(0, 10, 20, 0.9);
+      border-radius: 4px;
+      border: 1px solid rgba(0, 255, 255, 0.3);
+      border-right: 4px solid #0ff;
       backdrop-filter: blur(10px);
-      font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'Courier New', monospace;
       min-width: 200px;
+      box-shadow: 0 0 30px rgba(0, 255, 255, 0.2);
     }
 
     #controls h3 {
-      color: rgba(150, 200, 255, 0.9);
+      color: #0ff;
       font-size: 11px;
       text-transform: uppercase;
-      letter-spacing: 2px;
+      letter-spacing: 3px;
       margin: 0 0 8px 0;
       padding-bottom: 8px;
-      border-bottom: 1px solid rgba(100, 150, 255, 0.15);
+      border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+      text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
     }
 
     .control-group {
@@ -178,37 +181,97 @@
       border-top: 1px solid rgba(100, 150, 255, 0.1);
     }
 
+    /* Cyberpunk HUD Left Panel */
+    #hud-left {
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 8px;
+      background: linear-gradient(180deg, #0ff 0%, #0af 50%, #08f 100%);
+      z-index: 100;
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+    }
+
+    #hud-left .hud-section {
+      position: absolute;
+      left: 20px;
+      font-family: 'Courier New', monospace;
+    }
+
+    #hud-left .hud-section:nth-child(1) { top: 30px; }
+    #hud-left .hud-section:nth-child(2) { top: 100px; }
+    #hud-left .hud-section:nth-child(3) { top: 200px; }
+    #hud-left .hud-section:nth-child(4) { top: 260px; }
+    #hud-left .hud-section:nth-child(5) { top: 330px; }
+
+    .hud-label {
+      font-size: 10px;
+      color: #0cf;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-shadow: 0 0 10px rgba(0, 200, 255, 0.8);
+    }
+
+    .hud-value {
+      font-size: 18px;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+    }
+
+    .hud-value.large {
+      font-size: 32px;
+      color: #0ff;
+      text-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+    }
+
+    .hud-value.status-online {
+      color: #0f0;
+      text-shadow: 0 0 15px rgba(0, 255, 0, 0.8);
+    }
+
+    .hud-value.gesture {
+      color: #ff0;
+      text-shadow: 0 0 15px rgba(255, 255, 0, 0.8);
+    }
+
+    .hud-sublabel {
+      font-size: 10px;
+      color: rgba(0, 200, 255, 0.6);
+      letter-spacing: 3px;
+    }
+
     /* Score Display */
     #score-display {
       position: fixed;
       left: 20px;
-      top: 20px;
+      top: 420px;
       z-index: 100;
       padding: 16px 20px;
-      background: rgba(10, 10, 30, 0.85);
-      border-radius: 12px;
-      border: 1px solid rgba(100, 150, 255, 0.2);
-      backdrop-filter: blur(10px);
-      font-family: 'SF Pro Display', -apple-system, sans-serif;
+      background: rgba(0, 20, 40, 0.7);
+      border-radius: 4px;
+      border-left: 3px solid #0ff;
+      font-family: 'Courier New', monospace;
     }
 
     #score-display .score {
       font-size: 32px;
       font-weight: 700;
-      color: #fff;
-      text-shadow: 0 0 20px rgba(100, 200, 255, 0.5);
+      color: #0ff;
+      text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
     }
 
     #score-display .high-score {
       font-size: 11px;
-      color: rgba(150, 200, 255, 0.6);
+      color: rgba(0, 200, 255, 0.6);
       margin-top: 4px;
     }
 
     #score-display .combo {
       font-size: 18px;
       font-weight: 600;
-      color: #4af;
+      color: #ff0;
       margin-top: 8px;
       opacity: 0;
       transition: opacity 0.3s;
@@ -332,6 +395,31 @@
   <div id="canvas-container"></div>
   <video id="webcam" autoplay playsinline></video>
   <div id="vignette"></div>
+  
+  <!-- Cyberpunk HUD Overlay -->
+  <div id="hud-left">
+    <div class="hud-section">
+      <div class="hud-label">SYSTEM STATUS</div>
+      <div class="hud-value status-online" id="status-text">ONLINE</div>
+    </div>
+    <div class="hud-section">
+      <div class="hud-label">PARTICLES</div>
+      <div class="hud-value large" id="particle-count">800</div>
+      <div class="hud-sublabel">UNITS</div>
+    </div>
+    <div class="hud-section">
+      <div class="hud-label">FPS</div>
+      <div class="hud-value" id="fps-display">60</div>
+    </div>
+    <div class="hud-section">
+      <div class="hud-label">HAND STATUS</div>
+      <div class="hud-value" id="hand-status">SCANNING...</div>
+    </div>
+    <div class="hud-section">
+      <div class="hud-label">GESTURE</div>
+      <div class="hud-value gesture" id="gesture-display">NONE</div>
+    </div>
+  </div>
   
   <!-- Score Display -->
   <div id="score-display">

@@ -13,6 +13,11 @@ export class HandTracker {
     this.handsApi = null;
     this.camera = null;
     this.fingerTips = []; // For drawing mode - use index finger
+    
+    // Gesture tracking
+    this.gestures = []; // Current gesture for each hand
+    this.prevGestures = []; // Previous frame gestures
+    this.gestureEvents = []; // Events like "palm_opened" for explosion
   }
 
   async init() {
@@ -105,6 +110,9 @@ export class HandTracker {
         // Get index finger tip for drawing (landmark 8)
         const indexTip = landmarks[8];
         
+        // Detect gesture
+        const gesture = this.detectGesture(landmarks, normalizedSpread);
+        
         this.rawHands.push({
           // Mirror X for intuitive control, convert to -1 to 1 range
           x: -(palmX * 2 - 1),
@@ -114,13 +122,99 @@ export class HandTracker {
           landmarks: landmarks,
           // Index finger tip for precise drawing
           fingerX: -(indexTip.x * 2 - 1),
-          fingerY: -(indexTip.y * 2 - 1)
+          fingerY: -(indexTip.y * 2 - 1),
+          gesture: gesture
         });
       }
     }
 
+    // Detect gesture events (transitions)
+    this.detectGestureEvents();
+    
     // Smooth hand positions
     this.smoothHands();
+  }
+  
+  /**
+   * Detect current gesture from hand landmarks
+   */
+  detectGesture(landmarks, spread) {
+    // Check if fingers are extended by comparing tip to knuckle positions
+    const wrist = landmarks[0];
+    
+    // Finger tip and pip (middle joint) landmarks
+    const fingers = {
+      thumb: { tip: landmarks[4], pip: landmarks[3] },
+      index: { tip: landmarks[8], pip: landmarks[6] },
+      middle: { tip: landmarks[12], pip: landmarks[10] },
+      ring: { tip: landmarks[16], pip: landmarks[14] },
+      pinky: { tip: landmarks[20], pip: landmarks[18] }
+    };
+    
+    // Count extended fingers (tip is further from wrist than pip)
+    let extendedCount = 0;
+    
+    // For thumb, check x distance (horizontal spread)
+    const thumbExtended = Math.abs(fingers.thumb.tip.x - wrist.x) > 
+                          Math.abs(fingers.thumb.pip.x - wrist.x) * 1.2;
+    if (thumbExtended) extendedCount++;
+    
+    // For other fingers, check y distance (vertical)
+    for (const name of ['index', 'middle', 'ring', 'pinky']) {
+      const finger = fingers[name];
+      // Tip should be above (lower y) than pip when extended
+      if (finger.tip.y < finger.pip.y - 0.02) {
+        extendedCount++;
+      }
+    }
+    
+    // Determine gesture
+    if (spread > 0.7 && extendedCount >= 4) {
+      return 'OPEN_PALM';
+    } else if (extendedCount <= 1 && spread < 0.3) {
+      return 'FIST';
+    } else if (extendedCount === 1 || extendedCount === 2) {
+      return 'POINTING';
+    } else {
+      return 'PARTIAL';
+    }
+  }
+  
+  /**
+   * Detect gesture transition events (like palm opening = explosion)
+   */
+  detectGestureEvents() {
+    this.gestureEvents = [];
+    
+    for (let i = 0; i < this.rawHands.length; i++) {
+      const current = this.rawHands[i]?.gesture;
+      const prev = this.prevGestures[i];
+      
+      // Detect palm opening (was fist or partial, now open)
+      if (current === 'OPEN_PALM' && (prev === 'FIST' || prev === 'PARTIAL')) {
+        this.gestureEvents.push({
+          type: 'EXPLOSION',
+          handIndex: i,
+          x: this.rawHands[i].x,
+          y: this.rawHands[i].y
+        });
+        console.log('💥 EXPLOSION gesture detected!');
+      }
+      
+      // Detect fist closing (was open, now fist) = implode/attract burst
+      if (current === 'FIST' && prev === 'OPEN_PALM') {
+        this.gestureEvents.push({
+          type: 'IMPLODE',
+          handIndex: i,
+          x: this.rawHands[i].x,
+          y: this.rawHands[i].y
+        });
+        console.log('🌀 IMPLODE gesture detected!');
+      }
+    }
+    
+    // Store current gestures for next frame comparison
+    this.prevGestures = this.rawHands.map(h => h?.gesture);
   }
 
   smoothHands() {
@@ -169,16 +263,31 @@ export class HandTracker {
 
   /**
    * Get gravity wells from detected hands
-   * Returns array of { x, y, z, strength } in normalized coordinates (-1 to 1)
+   * Returns array of { x, y, z, strength, gesture } in normalized coordinates (-1 to 1)
    */
   getGravityWells() {
-    return this.hands.map(hand => ({
+    return this.hands.map((hand, i) => ({
       x: hand.x,
       y: hand.y,
       z: hand.z,
       // Spread affects gravity strength: open hand = stronger, closed = weaker
-      strength: 0.5 + hand.spread * 0.5
+      strength: 0.5 + hand.spread * 0.5,
+      gesture: this.rawHands[i]?.gesture || 'NONE'
     }));
+  }
+  
+  /**
+   * Get gesture events that occurred this frame (EXPLOSION, IMPLODE, etc.)
+   */
+  getGestureEvents() {
+    return this.gestureEvents;
+  }
+  
+  /**
+   * Get current gestures for all hands
+   */
+  getGestures() {
+    return this.rawHands.map(h => h?.gesture || 'NONE');
   }
 
   /**

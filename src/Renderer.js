@@ -46,7 +46,7 @@ export class Renderer {
             antialias: true,
             powerPreference: 'high-performance'
         });
-        
+
         // Setup webcam as background
         this.setupWebcamBackground();
         this.renderer.setSize(width, height);
@@ -103,17 +103,17 @@ export class Renderer {
         // Get the video element
         const video = document.getElementById('webcam');
         if (!video) return;
-        
+
         // Create video texture
         this.videoTexture = new THREE.VideoTexture(video);
         this.videoTexture.minFilter = THREE.LinearFilter;
         this.videoTexture.magFilter = THREE.LinearFilter;
-        
+
         // Create fullscreen background plane (behind particles)
         const aspect = window.innerWidth / window.innerHeight;
         const planeHeight = 8; // Large enough to fill view
         const planeWidth = planeHeight * aspect;
-        
+
         const bgGeometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
         const bgMaterial = new THREE.MeshBasicMaterial({
             map: this.videoTexture,
@@ -121,7 +121,7 @@ export class Renderer {
             transparent: true,
             opacity: 0.6 // Dim the video so particles pop
         });
-        
+
         this.webcamPlane = new THREE.Mesh(bgGeometry, bgMaterial);
         this.webcamPlane.position.z = -2; // Behind particles
         this.webcamPlane.scale.x = -1; // Mirror for intuitive interaction
@@ -319,7 +319,7 @@ export class Renderer {
 
         this.renderer.setSize(width, height);
         this.composer.setSize(width, height);
-        
+
         // Resize webcam plane
         if (this.webcamPlane) {
             const aspect = width / height;
