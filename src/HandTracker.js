@@ -74,6 +74,11 @@ export class HandTracker {
   onResults(results) {
     this.rawHands = [];
 
+    // Debug: log when hands are detected
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+      console.log('🖐️ Hands detected:', results.multiHandLandmarks.length);
+    }
+
     if (results.multiHandLandmarks) {
       for (const landmarks of results.multiHandLandmarks) {
         // Use palm center (wrist + middle finger MCP average) for stable tracking

@@ -426,6 +426,11 @@ class GravitySculptor {
     const gravityWells = this.handTracker.getGravityWells();
     const handVelocities = this.handTracker.getHandVelocities();
     
+    // Debug: log gravity wells every 60 frames when detected
+    if (gravityWells.length > 0 && this.frameCount % 60 === 0) {
+      console.log('🌍 Active gravity wells:', gravityWells.length, gravityWells);
+    }
+    
     // Get finger tips for drawing
     const fingerTips = this.handTracker.getFingerTips();
     const isDrawMode = this.gameMode.currentMode === 'draw';
