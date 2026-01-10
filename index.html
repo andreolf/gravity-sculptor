@@ -24,24 +24,27 @@
       left: 0;
       width: 100%;
       height: 100%;
+      z-index: 5; /* Above vignette overlay */
     }
 
     canvas {
       display: block;
     }
 
-    /* Hidden video for hand tracking */
+    /* Webcam background - visible and fullscreen */
     #webcam {
       position: fixed;
       top: 0;
       left: 0;
-      width: 1px;
-      height: 1px;
-      opacity: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1); /* Mirror for intuitive interaction */
       pointer-events: none;
+      z-index: 0;
     }
 
-    /* Cinematic vignette overlay */
+    /* Dark overlay to make particles pop + cinematic vignette */
     #vignette {
       position: fixed;
       top: 0;
@@ -49,13 +52,14 @@
       width: 100%;
       height: 100%;
       pointer-events: none;
-      background: radial-gradient(
-        ellipse at center,
-        transparent 0%,
-        transparent 50%,
-        rgba(0, 0, 0, 0.4) 100%
-      );
-      z-index: 10;
+      background: 
+        radial-gradient(
+          ellipse at center,
+          rgba(0, 0, 0, 0.3) 0%,
+          rgba(0, 0, 0, 0.5) 60%,
+          rgba(0, 0, 0, 0.8) 100%
+        );
+      z-index: 2;
     }
 
     /* Control Panel */

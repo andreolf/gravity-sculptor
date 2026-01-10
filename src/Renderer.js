@@ -34,19 +34,21 @@ export class Renderer {
         const width = window.innerWidth;
         const height = window.innerHeight;
 
-        // Scene with dark background
+        // Scene with transparent background (webcam shows through)
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x050510);
+        // No background - transparent to show webcam
 
         // Camera close for full-screen particle field
         this.camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 100);
         this.camera.position.z = 3;
 
-        // Renderer with high quality settings
+        // Renderer with transparency for webcam background
         this.renderer = new THREE.WebGLRenderer({
             antialias: true,
-            powerPreference: 'high-performance'
+            powerPreference: 'high-performance',
+            alpha: true // Enable transparency
         });
+        this.renderer.setClearColor(0x000000, 0); // Fully transparent
         this.renderer.setSize(width, height);
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         this.container.appendChild(this.renderer.domElement);
@@ -101,11 +103,18 @@ export class Renderer {
         const width = window.innerWidth;
         const height = window.innerHeight;
 
-        // Composer
-        this.composer = new EffectComposer(this.renderer);
+        // Create render target with alpha support
+        const renderTarget = new THREE.WebGLRenderTarget(width, height, {
+            format: THREE.RGBAFormat,
+            type: THREE.HalfFloatType
+        });
 
-        // Render pass
+        // Composer with alpha-capable render target
+        this.composer = new EffectComposer(this.renderer, renderTarget);
+
+        // Render pass - needs clear alpha
         const renderPass = new RenderPass(this.scene, this.camera);
+        renderPass.clearAlpha = 0;
         this.composer.addPass(renderPass);
 
         // Minimal bloom - just a hint of glow
