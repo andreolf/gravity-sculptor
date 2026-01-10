@@ -71,12 +71,25 @@ export class Renderer {
         const positions = new Float32Array(this.particleCount * 3);
         this.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
-        // Color attribute - vibrant cyan/blue palette
+        // Color attribute - vibrant rainbow butterfly colors
         const colors = new Float32Array(this.particleCount * 3);
+        const butterflyHues = [
+            0.0,   // Red
+            0.05,  // Orange
+            0.12,  // Yellow
+            0.3,   // Green
+            0.55,  // Cyan
+            0.65,  // Blue
+            0.75,  // Purple
+            0.85,  // Pink
+            0.95   // Magenta
+        ];
+        
         for (let i = 0; i < this.particleCount; i++) {
-            const hue = 0.5 + Math.random() * 0.2; // Cyan to blue range
-            const sat = 0.7 + Math.random() * 0.3;
-            const light = 0.55 + Math.random() * 0.35;
+            // Pick a random butterfly color
+            const hue = butterflyHues[Math.floor(Math.random() * butterflyHues.length)];
+            const sat = 0.85 + Math.random() * 0.15; // Very saturated
+            const light = 0.5 + Math.random() * 0.3;
             const color = new THREE.Color().setHSL(hue, sat, light);
             colors[i * 3] = color.r;
             colors[i * 3 + 1] = color.g;
@@ -84,19 +97,91 @@ export class Renderer {
         }
         this.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
-        // Glowing particles - clean and distinct
+        // Create butterfly texture
+        const butterflyTexture = this.createButterflyTexture();
+
+        // Tiny butterfly particles
         this.material = new THREE.PointsMaterial({
-            size: 0.05, // Visible individual particles
+            size: 0.025, // Smaller butterflies
+            map: butterflyTexture,
             vertexColors: true,
             transparent: true,
-            opacity: 0.7, // Each particle visible
+            opacity: 0.9,
             blending: THREE.AdditiveBlending,
             sizeAttenuation: true,
-            depthWrite: false
+            depthWrite: false,
+            alphaTest: 0.01
         });
 
         this.particles = new THREE.Points(this.geometry, this.material);
         this.scene.add(this.particles);
+    }
+    
+    /**
+     * Create a butterfly-shaped texture using canvas
+     */
+    createButterflyTexture() {
+        const size = 64;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        
+        // Clear with transparent
+        ctx.clearRect(0, 0, size, size);
+        
+        const cx = size / 2;
+        const cy = size / 2;
+        
+        // Draw butterfly wings using bezier curves
+        ctx.fillStyle = 'white';
+        ctx.globalAlpha = 1;
+        
+        // Left wing (upper)
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.bezierCurveTo(cx - 25, cy - 20, cx - 30, cy - 10, cx - 20, cy + 5);
+        ctx.bezierCurveTo(cx - 10, cy + 2, cx, cy, cx, cy);
+        ctx.fill();
+        
+        // Left wing (lower)
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.bezierCurveTo(cx - 20, cy + 5, cx - 25, cy + 20, cx - 15, cy + 15);
+        ctx.bezierCurveTo(cx - 5, cy + 8, cx, cy, cx, cy);
+        ctx.fill();
+        
+        // Right wing (upper)
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.bezierCurveTo(cx + 25, cy - 20, cx + 30, cy - 10, cx + 20, cy + 5);
+        ctx.bezierCurveTo(cx + 10, cy + 2, cx, cy, cx, cy);
+        ctx.fill();
+        
+        // Right wing (lower)
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.bezierCurveTo(cx + 20, cy + 5, cx + 25, cy + 20, cx + 15, cy + 15);
+        ctx.bezierCurveTo(cx + 5, cy + 8, cx, cy, cx, cy);
+        ctx.fill();
+        
+        // Body (small oval)
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 2, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Add soft glow
+        const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, size / 2);
+        gradient.addColorStop(0, 'rgba(255,255,255,0.3)');
+        gradient.addColorStop(0.5, 'rgba(255,255,255,0.1)');
+        gradient.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.globalCompositeOperation = 'source-atop';
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, size, size);
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.needsUpdate = true;
+        return texture;
     }
 
     setupWebcamBackground() {
@@ -282,7 +367,7 @@ export class Renderer {
         if (!this.fingerCursors) {
             this.fingerCursors = [];
             const colors = [0x00ffff, 0xff00ff, 0xffff00, 0x00ff00, 0xff6600];
-            
+
             for (let i = 0; i < 10; i++) {
                 const cursorGeom = new THREE.RingGeometry(0.06, 0.10, 32);
                 const cursorMat = new THREE.MeshBasicMaterial({
@@ -302,13 +387,13 @@ export class Renderer {
         // Update cursors based on finger tips
         for (let i = 0; i < this.fingerCursors.length; i++) {
             const cursor = this.fingerCursors[i];
-            
+
             if (isDrawMode && i < fingerTips.length) {
                 const tip = fingerTips[i];
                 cursor.position.x = tip.x * 1.8;
                 cursor.position.y = tip.y * 1.4;
                 cursor.visible = true;
-                
+
                 // Pulse effect
                 const pulse = 1 + Math.sin(Date.now() * 0.01 + i) * 0.2;
                 cursor.scale.set(pulse, pulse, 1);
@@ -355,10 +440,14 @@ export class Renderer {
         const positions = new Float32Array(count * 3);
         const colors = new Float32Array(count * 3);
 
+        // Butterfly rainbow colors
+        const butterflyHues = [0.0, 0.05, 0.12, 0.3, 0.55, 0.65, 0.75, 0.85, 0.95];
         for (let i = 0; i < count; i++) {
-            colors[i * 3] = 0.4;
-            colors[i * 3 + 1] = 0.8;
-            colors[i * 3 + 2] = 1.0;
+            const hue = butterflyHues[Math.floor(Math.random() * butterflyHues.length)];
+            const color = new THREE.Color().setHSL(hue, 0.9, 0.6);
+            colors[i * 3] = color.r;
+            colors[i * 3 + 1] = color.g;
+            colors[i * 3 + 2] = color.b;
         }
 
         this.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
