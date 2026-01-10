@@ -84,7 +84,7 @@ export class Renderer {
             0.85,  // Pink
             0.95   // Magenta
         ];
-        
+
         for (let i = 0; i < this.particleCount; i++) {
             // Pick a random butterfly color
             const hue = butterflyHues[Math.floor(Math.random() * butterflyHues.length)];
@@ -100,9 +100,9 @@ export class Renderer {
         // Create butterfly texture
         const butterflyTexture = this.createButterflyTexture();
 
-        // Tiny butterfly particles
+        // Butterfly particles - visible but delicate
         this.material = new THREE.PointsMaterial({
-            size: 0.025, // Smaller butterflies
+            size: 0.08, // Visible butterflies
             map: butterflyTexture,
             vertexColors: true,
             transparent: true,
@@ -116,7 +116,7 @@ export class Renderer {
         this.particles = new THREE.Points(this.geometry, this.material);
         this.scene.add(this.particles);
     }
-    
+
     /**
      * Create a butterfly-shaped texture using canvas
      */
@@ -126,50 +126,50 @@ export class Renderer {
         canvas.width = size;
         canvas.height = size;
         const ctx = canvas.getContext('2d');
-        
+
         // Clear with transparent
         ctx.clearRect(0, 0, size, size);
-        
+
         const cx = size / 2;
         const cy = size / 2;
-        
+
         // Draw butterfly wings using bezier curves
         ctx.fillStyle = 'white';
         ctx.globalAlpha = 1;
-        
+
         // Left wing (upper)
         ctx.beginPath();
         ctx.moveTo(cx, cy);
         ctx.bezierCurveTo(cx - 25, cy - 20, cx - 30, cy - 10, cx - 20, cy + 5);
         ctx.bezierCurveTo(cx - 10, cy + 2, cx, cy, cx, cy);
         ctx.fill();
-        
+
         // Left wing (lower)
         ctx.beginPath();
         ctx.moveTo(cx, cy);
         ctx.bezierCurveTo(cx - 20, cy + 5, cx - 25, cy + 20, cx - 15, cy + 15);
         ctx.bezierCurveTo(cx - 5, cy + 8, cx, cy, cx, cy);
         ctx.fill();
-        
+
         // Right wing (upper)
         ctx.beginPath();
         ctx.moveTo(cx, cy);
         ctx.bezierCurveTo(cx + 25, cy - 20, cx + 30, cy - 10, cx + 20, cy + 5);
         ctx.bezierCurveTo(cx + 10, cy + 2, cx, cy, cx, cy);
         ctx.fill();
-        
+
         // Right wing (lower)
         ctx.beginPath();
         ctx.moveTo(cx, cy);
         ctx.bezierCurveTo(cx + 20, cy + 5, cx + 25, cy + 20, cx + 15, cy + 15);
         ctx.bezierCurveTo(cx + 5, cy + 8, cx, cy, cx, cy);
         ctx.fill();
-        
+
         // Body (small oval)
         ctx.beginPath();
         ctx.ellipse(cx, cy, 2, 8, 0, 0, Math.PI * 2);
         ctx.fill();
-        
+
         // Add soft glow
         const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, size / 2);
         gradient.addColorStop(0, 'rgba(255,255,255,0.3)');
@@ -178,7 +178,7 @@ export class Renderer {
         ctx.globalCompositeOperation = 'source-atop';
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, size, size);
-        
+
         const texture = new THREE.CanvasTexture(canvas);
         texture.needsUpdate = true;
         return texture;
