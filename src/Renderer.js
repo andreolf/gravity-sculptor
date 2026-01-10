@@ -34,21 +34,21 @@ export class Renderer {
         const width = window.innerWidth;
         const height = window.innerHeight;
 
-        // Scene with transparent background (webcam shows through)
+        // Scene
         this.scene = new THREE.Scene();
-        // No background - transparent to show webcam
 
         // Camera close for full-screen particle field
         this.camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 100);
         this.camera.position.z = 3;
 
-        // Renderer with transparency for webcam background
+        // Renderer
         this.renderer = new THREE.WebGLRenderer({
             antialias: true,
-            powerPreference: 'high-performance',
-            alpha: true // Enable transparency
+            powerPreference: 'high-performance'
         });
-        this.renderer.setClearColor(0x000000, 0); // Fully transparent
+        
+        // Setup webcam as background
+        this.setupWebcamBackground();
         this.renderer.setSize(width, height);
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         this.container.appendChild(this.renderer.domElement);
@@ -99,22 +99,44 @@ export class Renderer {
         this.scene.add(this.particles);
     }
 
+    setupWebcamBackground() {
+        // Get the video element
+        const video = document.getElementById('webcam');
+        if (!video) return;
+        
+        // Create video texture
+        this.videoTexture = new THREE.VideoTexture(video);
+        this.videoTexture.minFilter = THREE.LinearFilter;
+        this.videoTexture.magFilter = THREE.LinearFilter;
+        
+        // Create fullscreen background plane (behind particles)
+        const aspect = window.innerWidth / window.innerHeight;
+        const planeHeight = 8; // Large enough to fill view
+        const planeWidth = planeHeight * aspect;
+        
+        const bgGeometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
+        const bgMaterial = new THREE.MeshBasicMaterial({
+            map: this.videoTexture,
+            side: THREE.FrontSide,
+            transparent: true,
+            opacity: 0.6 // Dim the video so particles pop
+        });
+        
+        this.webcamPlane = new THREE.Mesh(bgGeometry, bgMaterial);
+        this.webcamPlane.position.z = -2; // Behind particles
+        this.webcamPlane.scale.x = -1; // Mirror for intuitive interaction
+        this.scene.add(this.webcamPlane);
+    }
+
     setupPostProcessing() {
         const width = window.innerWidth;
         const height = window.innerHeight;
 
-        // Create render target with alpha support
-        const renderTarget = new THREE.WebGLRenderTarget(width, height, {
-            format: THREE.RGBAFormat,
-            type: THREE.HalfFloatType
-        });
+        // Composer
+        this.composer = new EffectComposer(this.renderer);
 
-        // Composer with alpha-capable render target
-        this.composer = new EffectComposer(this.renderer, renderTarget);
-
-        // Render pass - needs clear alpha
+        // Render pass
         const renderPass = new RenderPass(this.scene, this.camera);
-        renderPass.clearAlpha = 0;
         this.composer.addPass(renderPass);
 
         // Minimal bloom - just a hint of glow
@@ -297,6 +319,15 @@ export class Renderer {
 
         this.renderer.setSize(width, height);
         this.composer.setSize(width, height);
+        
+        // Resize webcam plane
+        if (this.webcamPlane) {
+            const aspect = width / height;
+            const planeHeight = 8;
+            const planeWidth = planeHeight * aspect;
+            this.webcamPlane.geometry.dispose();
+            this.webcamPlane.geometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
+        }
     }
 
     reinitParticles(count) {
