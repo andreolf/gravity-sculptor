@@ -41,11 +41,22 @@ export class Renderer {
         this.camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 100);
         this.camera.position.z = 3;
 
-        // Renderer
-        this.renderer = new THREE.WebGLRenderer({
-            antialias: true,
-            powerPreference: 'high-performance'
-        });
+        // Renderer with WebGL fallback
+        try {
+            this.renderer = new THREE.WebGLRenderer({
+                antialias: true,
+                powerPreference: 'high-performance'
+            });
+        } catch (e) {
+            console.error('WebGL not available:', e);
+            this.showWebGLError();
+            return;
+        }
+        
+        if (!this.renderer.getContext()) {
+            this.showWebGLError();
+            return;
+        }
 
         // Setup webcam as background
         this.setupWebcamBackground();
@@ -420,9 +431,41 @@ export class Renderer {
         this.scene.add(this.particles);
     }
 
+    showWebGLError() {
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(20, 0, 40, 0.95);
+            border: 2px solid #f00;
+            border-radius: 12px;
+            padding: 40px;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            z-index: 10000;
+            max-width: 400px;
+        `;
+        errorDiv.innerHTML = `
+            <h2 style="color: #f66; margin: 0 0 20px;">⚠️ WebGL Required</h2>
+            <p style="margin: 0 0 15px; color: #aaa;">
+                This experience requires WebGL which isn't available in your current browser.
+            </p>
+            <p style="margin: 0; font-size: 14px; color: #888;">
+                Try:<br>
+                • Use regular Chrome (not Incognito)<br>
+                • Enable hardware acceleration<br>
+                • Try Firefox or Edge
+            </p>
+        `;
+        document.body.appendChild(errorDiv);
+    }
+
     dispose() {
-        this.geometry.dispose();
-        this.material.dispose();
-        this.renderer.dispose();
+        this.geometry?.dispose();
+        this.material?.dispose();
+        this.renderer?.dispose();
     }
 }
