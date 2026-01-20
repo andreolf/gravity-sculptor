@@ -97,20 +97,19 @@ export class Renderer {
         }
         this.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
-        // Create butterfly texture
-        const butterflyTexture = this.createButterflyTexture();
+        // Create glowing particle texture
+        const glowTexture = this.createGlowTexture();
 
-        // Butterfly particles - visible but delicate
+        // Glowing particles - clearly visible
         this.material = new THREE.PointsMaterial({
-            size: 0.08, // Visible butterflies
-            map: butterflyTexture,
+            size: 0.12,
+            map: glowTexture,
             vertexColors: true,
             transparent: true,
-            opacity: 0.9,
+            opacity: 1.0,
             blending: THREE.AdditiveBlending,
             sizeAttenuation: true,
-            depthWrite: false,
-            alphaTest: 0.01
+            depthWrite: false
         });
 
         this.particles = new THREE.Points(this.geometry, this.material);
@@ -118,64 +117,28 @@ export class Renderer {
     }
 
     /**
-     * Create a butterfly-shaped texture using canvas
+     * Create a simple glowing particle texture
      */
-    createButterflyTexture() {
+    createGlowTexture() {
         const size = 64;
         const canvas = document.createElement('canvas');
         canvas.width = size;
         canvas.height = size;
         const ctx = canvas.getContext('2d');
 
-        // Clear with transparent
+        // Clear
         ctx.clearRect(0, 0, size, size);
 
         const cx = size / 2;
         const cy = size / 2;
 
-        // Draw butterfly wings using bezier curves
-        ctx.fillStyle = 'white';
-        ctx.globalAlpha = 1;
-
-        // Left wing (upper)
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.bezierCurveTo(cx - 25, cy - 20, cx - 30, cy - 10, cx - 20, cy + 5);
-        ctx.bezierCurveTo(cx - 10, cy + 2, cx, cy, cx, cy);
-        ctx.fill();
-
-        // Left wing (lower)
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.bezierCurveTo(cx - 20, cy + 5, cx - 25, cy + 20, cx - 15, cy + 15);
-        ctx.bezierCurveTo(cx - 5, cy + 8, cx, cy, cx, cy);
-        ctx.fill();
-
-        // Right wing (upper)
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.bezierCurveTo(cx + 25, cy - 20, cx + 30, cy - 10, cx + 20, cy + 5);
-        ctx.bezierCurveTo(cx + 10, cy + 2, cx, cy, cx, cy);
-        ctx.fill();
-
-        // Right wing (lower)
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.bezierCurveTo(cx + 20, cy + 5, cx + 25, cy + 20, cx + 15, cy + 15);
-        ctx.bezierCurveTo(cx + 5, cy + 8, cx, cy, cx, cy);
-        ctx.fill();
-
-        // Body (small oval)
-        ctx.beginPath();
-        ctx.ellipse(cx, cy, 2, 8, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Add soft glow
+        // Radial gradient glow
         const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, size / 2);
-        gradient.addColorStop(0, 'rgba(255,255,255,0.3)');
-        gradient.addColorStop(0.5, 'rgba(255,255,255,0.1)');
+        gradient.addColorStop(0, 'rgba(255,255,255,1)');
+        gradient.addColorStop(0.2, 'rgba(255,255,255,0.8)');
+        gradient.addColorStop(0.5, 'rgba(255,255,255,0.3)');
         gradient.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.globalCompositeOperation = 'source-atop';
+
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, size, size);
 

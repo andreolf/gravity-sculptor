@@ -38,14 +38,13 @@ export class Physics {
     for (let i = 0; i < this.count; i++) {
       const i3 = i * 3;
       
-      // Spawn spread across entire screen - no clustering
+      // Spawn spread across visible area - center biased
       const angle = Math.random() * Math.PI * 2;
-      const radius = 0.5 + Math.random() * 2.0; // Even distribution
-      const height = (Math.random() - 0.5) * 0.6;
+      const radius = Math.random() * 1.5; // Closer to center for visibility
       
       this.positions[i3] = Math.cos(angle) * radius;
-      this.positions[i3 + 1] = Math.sin(angle) * radius * 0.9 + height;
-      this.positions[i3 + 2] = (Math.random() - 0.5) * 1.0;
+      this.positions[i3 + 1] = Math.sin(angle) * radius * 0.8;
+      this.positions[i3 + 2] = 0; // Keep all particles at z=0 (in front of webcam at z=-2)
       
       // Slow random drift - particles stay spread out until hands interact
       const driftSpeed = 0.001;
