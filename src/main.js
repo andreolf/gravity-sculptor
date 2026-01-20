@@ -417,17 +417,20 @@ class GravitySculptor {
     
     requestAnimationFrame(() => this.animate());
     
+    // Skip if renderer not ready
+    if (!this.renderer || !this.renderer.renderer) return;
+    
     // Calculate delta time for consistent physics
     const now = performance.now();
     const dt = Math.min((now - this.lastTime) / 16.67, 2); // Normalize to 60fps, cap at 2x
     this.lastTime = now;
     
-    // Get gravity wells from hands
-    const gravityWells = this.handTracker.getGravityWells();
-    const handVelocities = this.handTracker.getHandVelocities();
+    // Get gravity wells from hands (with null check)
+    const gravityWells = this.handTracker?.getGravityWells() || [];
+    const handVelocities = this.handTracker?.getHandVelocities() || [];
     
     // Get gesture events and apply explosion/implosion effects
-    const gestureEvents = this.handTracker.getGestureEvents();
+    const gestureEvents = this.handTracker?.getGestureEvents() || [];
     for (const event of gestureEvents) {
       if (event.type === 'EXPLOSION') {
         this.physics.applyExplosion(event.x, event.y, 1.5);
@@ -439,12 +442,12 @@ class GravitySculptor {
     }
     
     // Update HUD with gesture info
-    const gestures = this.handTracker.getGestures();
+    const gestures = this.handTracker?.getGestures() || [];
     this.updateHUD(gravityWells, gestures);
     
     // Get finger tips for drawing
-    const fingerTips = this.handTracker.getFingerTips();
-    const isDrawMode = this.gameMode.currentMode === 'draw';
+    const fingerTips = this.handTracker?.getFingerTips() || [];
+    const isDrawMode = this.gameMode?.currentMode === 'draw';
     
     // Update visual finger cursor
     if (this.renderer.updateFingerCursor) {

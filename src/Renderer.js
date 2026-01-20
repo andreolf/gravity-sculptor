@@ -52,7 +52,7 @@ export class Renderer {
             this.showWebGLError();
             return;
         }
-        
+
         if (!this.renderer.getContext()) {
             this.showWebGLError();
             return;
